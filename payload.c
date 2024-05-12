@@ -9,8 +9,10 @@ asm(R"(.text
 
 original_entrypoint:
     .word 0x080000c0
+
 flush_mode:
     .word 0
+
 save_size:
     .word 0x20000
     .word patched_entrypoint
@@ -44,7 +46,9 @@ flush_sram_manual_entry:
     pop {r0}
     mov lr, r0
     pop {r0, r1, r2, r3, r4}
-# feel free to put any housekeeping before you return to your injected branch here
+
+    # feel free to put any housekeeping before you return to your injected branch here
+
     nop
     nop
     nop
@@ -56,6 +60,7 @@ flush_sram_manual_entry:
     nop
     nop
     nop
+
 .ltorg
 
 .arm
@@ -75,6 +80,7 @@ patched_entrypoint:
     # Lock 369in1 mapper
     mov r4, # 0x80
     strb r4, [r1, # 3]
+
 sram_init_loop:
     lsr r4, r1, # 16
     and r4, # 1
@@ -108,7 +114,6 @@ write_flash_patched:
     
     b write_sram_patched
 
-
 # r0 = src, r1 = dst, r2 = size. Check if change before writing, only install irq if change
 # unoptimised as hell, but I don't care for now.
 
@@ -132,6 +137,7 @@ write_sram_patched:
     strh r5, [r4]
     
     add r2, r0
+
 write_sram_patched_loop:
     # Check if the each byte to write to sram is different - if it is, write it then set a flag
     ldrb r4, [r0]
@@ -175,6 +181,7 @@ write_eeprom_patched:
     mov r2, r1
     add r2, # 8
     mov r3, sp
+
 write_eeprom_patched_byte_swap_loop:
     ldrb r4, [r1]
     add r1, # 1
@@ -194,7 +201,6 @@ write_eeprom_patched_byte_swap_loop:
     
     add sp, # 8
     pop {r4, pc}
-
 
 .type write_eeprom_patched, %function
 write_eeprom_v111_posthook:
@@ -289,7 +295,6 @@ countdown_irq_handler:
 idle_irq_handler:
     ldr pc, [r0, # -12]
 
-
 # Ensure interrupts are disabled and there is plenty of stack space before calling
 flush_sram:
     mov r0, # 0x04000000
@@ -324,7 +329,6 @@ flush_sram:
     adr r7, original_entrypoint 
     
 try_flash:
-
     ldm r6!, {r2, r3}
     cmp r2, # 0
     beq flush_sram_done
@@ -365,7 +369,6 @@ flush_sram_done:
     strh r3, [r0, # 0x00c6]
     pop {r3}
     strh r3, [r0, # 0x00ba]
-
 
     # restore sound state
     pop {r2, r3}

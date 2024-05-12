@@ -72,7 +72,6 @@ int main(int argc, char **argv)
     if (romfilename_len < 4 || strcasecmp(argv[1] + romfilename_len - 4, ".gba"))
     {
         puts("File does not have .gba extension.");
-        scanf("%*s");
         return 1;
     }
 
@@ -81,7 +80,6 @@ int main(int argc, char **argv)
     {
         puts("Could not open input file");
         puts(strerror(errno));
-        scanf("%*s");
         return 1;
     }
 
@@ -92,7 +90,6 @@ int main(int argc, char **argv)
     if (romsize > sizeof rom)
     {
         puts("ROM too large - not a GBA ROM?");
-        scanf("%*s");
         return 1;
     }
 
@@ -110,7 +107,6 @@ int main(int argc, char **argv)
     if (memfind(rom, romsize, signature, sizeof signature - 1, 4))
     {
         puts("Signature found. ROM already patched!");
-        scanf("%*s");
         return 1;
     }
 
@@ -131,7 +127,6 @@ int main(int argc, char **argv)
     if (!found_irq)
     {
         puts("Could not find any reference to the IRQ handler. Has the ROM already been patched?");
-        scanf("%*s");
         return 1;
     }
 
@@ -163,7 +158,6 @@ int main(int argc, char **argv)
         if (romsize + 0x80000 > 0x2000000)
         {
             puts("ROM alraedy max size. Cannot expand. Cannot install payload");
-            scanf("%*s");
             return 1;
         }
         else
@@ -177,18 +171,19 @@ int main(int argc, char **argv)
     printf("Installing payload at offset %x, save file stored at %x\n", payload_base, payload_base + payload_bin_len);
     memcpy(rom + payload_base, payload_bin, payload_bin_len);
     
-    
     puts("Enter 0 for auto mode and 1 for keypad triggered mode");
     int mode = 0;
     scanf("%d", &mode);
     FLUSH_MODE[(uint32_t*) &rom[payload_base]] = mode;
     
+    
+
+
 
     // Patch the ROM entrypoint to init sram and the dummy IRQ handler, and tell the new entrypoint where the old one was.
     if (rom[3] != 0xea)
     {
         puts("Unexpected entrypoint instruction");
-        scanf("%*s");
         return 1;
     }
     unsigned long original_entrypoint_offset = rom[0];
@@ -202,7 +197,6 @@ int main(int argc, char **argv)
 
     unsigned long new_entrypoint_address = 0x08000000 + payload_base + PATCHED_ENTRYPOINT[(uint32_t*) payload_bin];
     0[(uint32_t*) rom] = 0xea000000 | (new_entrypoint_address - 0x08000008) >> 2;
-
 
     // Patch any write functions to install the countdown IRQ handler after calling any save function
     int found_write_location = 0;
@@ -219,7 +213,6 @@ int main(int argc, char **argv)
                 1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_SRAM_PATCHED[(uint32_t*) payload_bin];
             }
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x8000;
-
         }
         if (!memcmp(write_location, write_sram2_signature, sizeof write_sram2_signature))
         {
@@ -231,7 +224,6 @@ int main(int argc, char **argv)
                 1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_SRAM_PATCHED[(uint32_t*) payload_bin];
             }
             SAVE_SIZE[(uint32_t*) &rom[payload_base]] = 0x8000;
-
         }
         if (!memcmp(write_location, write_sram_ram_signature, sizeof write_sram_ram_signature))
         {
@@ -309,7 +301,6 @@ int main(int argc, char **argv)
         if (!mode)
         {
             puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
-            scanf("%*s");
             return 1;
         }
         else
@@ -317,7 +308,6 @@ int main(int argc, char **argv)
             puts("Unsure what save type this is. Defaulting to 128KB save");
         }
     }
-
 
     // Flush all changes to new file
     char *suffix = mode ? "_keypad.gba" : "_auto.gba";
@@ -330,7 +320,6 @@ int main(int argc, char **argv)
     {
         puts("Could not open output file");
         puts(strerror(errno));
-        scanf("%*s");
         return 1;
     }
     
@@ -338,7 +327,5 @@ int main(int argc, char **argv)
     fflush(outfile);
 
     printf("Patched successfully. Changes written to %s\n", new_filename);
-    scanf("%*s");
     return 0;
-    
 }
