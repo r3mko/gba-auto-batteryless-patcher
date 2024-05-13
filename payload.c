@@ -703,7 +703,6 @@ void program_flash_4(unsigned sa, unsigned save_size)
         c += 1024;
     }
     
-        
     for (volatile int i = 0; i < 1024; ++i)
         __asm("nop");
 }

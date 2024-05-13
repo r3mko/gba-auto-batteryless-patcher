@@ -1,3 +1,5 @@
+rm payload.elf payload.bin payload_bin.c patcher patcher.exe
+
 $DEVKITARM/bin/arm-none-eabi-gcc \
 -mcpu=arm7tdmi -nostartfiles -nodefaultlibs -mthumb -fPIE -Os -fno-toplevel-reorder \
 payload.c -T payload.ld -o payload.elf

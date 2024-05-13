@@ -175,10 +175,6 @@ int main(int argc, char **argv)
     int mode = 0;
     scanf("%d", &mode);
     FLUSH_MODE[(uint32_t*) &rom[payload_base]] = mode;
-    
-    
-
-
 
     // Patch the ROM entrypoint to init sram and the dummy IRQ handler, and tell the new entrypoint where the old one was.
     if (rom[3] != 0xea)
@@ -310,7 +306,7 @@ int main(int argc, char **argv)
     }
 
     // Flush all changes to new file
-    char *suffix = mode ? "_keypad.gba" : "_auto.gba";
+    char *suffix = mode ? " [NB_keypad].gba" : " [NB_auto].gba";
     size_t suffix_length = strlen(suffix);
     char new_filename[FILENAME_MAX];
     strncpy(new_filename, argv[1], FILENAME_MAX);
