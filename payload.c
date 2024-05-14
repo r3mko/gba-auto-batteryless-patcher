@@ -444,11 +444,9 @@ int identify_flash_1()
         _FLASH_WRITE(0, 0xFF);
         if (data != 0x96) {
             //resume_interrupts();
-                
             for (volatile int i = 0; i < 1024; ++i)
                 __asm("nop");
-            
-            
+             
             return 0;
         }
         //resume_interrupts();
@@ -640,7 +638,6 @@ int identify_flash_4()
         _FLASH_WRITE(0, 0xFF);
         if (data != 0x96) {
             //resume_interrupts();
-            
             for (volatile int i = 0; i < 1024; ++i)
                 __asm("nop");
             
@@ -667,7 +664,6 @@ void erase_flash_4(unsigned sa, unsigned save_size)
     }
     _FLASH_WRITE(sa, 0xFF);
     
-        
     for (volatile int i = 0; i < 1024; ++i)
         __asm("nop");
 }
@@ -715,7 +711,7 @@ asm(R"(
 # Size of payload
 .hword (.+2)
 .balign 4
-    flash_save_sector:
+flash_save_sector:
 .end
 
 )");

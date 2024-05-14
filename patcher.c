@@ -45,6 +45,13 @@ static unsigned char write_flash3_signature[] = { 0xF0, 0xB5, 0x90, 0xB0, 0x0F, 
 static unsigned char write_eepromv11_epilogue_patch[] = { 0x07, 0x49, 0x08, 0x47 };
 static unsigned char write_eepromv111_signature[] = { 0x0A, 0x88, 0x80, 0x21, 0x09, 0x06, 0x0A, 0x43, 0x02, 0x60, 0x07, 0x48, 0x00, 0x47, 0x00, 0x00 };
 
+void pause()
+{
+    while (getchar() != '\n') {}
+    puts("Press <ENTER> to exit...");
+    getchar();
+}
+
 static uint8_t *memfind(uint8_t *haystack, size_t haystack_size, uint8_t *needle, size_t needle_size, int stride)
 {
     for (size_t i = 0; i < haystack_size - needle_size; i += stride)
@@ -62,7 +69,7 @@ int main(int argc, char **argv)
     if (argc != 2)
     {
         puts("Wrong number of args. Try dragging and dropping your ROM onto the .exe file in the file browser.");
-        scanf("%*s");
+        pause();
         return 1;
     }
     
@@ -72,6 +79,7 @@ int main(int argc, char **argv)
     if (romfilename_len < 4 || strcasecmp(argv[1] + romfilename_len - 4, ".gba"))
     {
         puts("File does not have .gba extension.");
+        pause();
         return 1;
     }
 
@@ -80,6 +88,7 @@ int main(int argc, char **argv)
     {
         puts("Could not open input file");
         puts(strerror(errno));
+        pause();
         return 1;
     }
 
@@ -90,6 +99,7 @@ int main(int argc, char **argv)
     if (romsize > sizeof rom)
     {
         puts("ROM too large - not a GBA ROM?");
+        pause();
         return 1;
     }
 
@@ -107,6 +117,7 @@ int main(int argc, char **argv)
     if (memfind(rom, romsize, signature, sizeof signature - 1, 4))
     {
         puts("Signature found. ROM already patched!");
+        pause();
         return 1;
     }
 
@@ -127,6 +138,7 @@ int main(int argc, char **argv)
     if (!found_irq)
     {
         puts("Could not find any reference to the IRQ handler. Has the ROM already been patched?");
+        pause();
         return 1;
     }
 
@@ -154,14 +166,15 @@ int main(int argc, char **argv)
     }
     if (payload_base < 0)
     {
-        puts("ROM too small to install payload.");
         if (romsize + 0x80000 > 0x2000000)
         {
             puts("ROM alraedy max size. Cannot expand. Cannot install payload");
+            pause();
             return 1;
         }
         else
         {
+            puts("ROM too small to install payload.");
             puts("Expanding ROM");
             romsize += 0x80000;
             payload_base = romsize - 0x40000 - payload_bin_len;
@@ -171,17 +184,24 @@ int main(int argc, char **argv)
     printf("Installing payload at offset %x, save file stored at %x\n", payload_base, payload_base + payload_bin_len);
     memcpy(rom + payload_base, payload_bin, payload_bin_len);
     
-    puts("Enter 0 for auto mode and 1 for keypad triggered mode");
     int mode = 0;
+    puts("Enter 0 for auto mode and 1 for keypad/manual triggered mode");
     scanf("%d", &mode);
+    if (!(mode == 0 || mode == 1)) {
+        puts("Unknown mode!");
+        pause();
+        return 1;
+    }
     FLUSH_MODE[(uint32_t*) &rom[payload_base]] = mode;
 
     // Patch the ROM entrypoint to init sram and the dummy IRQ handler, and tell the new entrypoint where the old one was.
     if (rom[3] != 0xea)
     {
         puts("Unexpected entrypoint instruction");
+        pause();
         return 1;
     }
+
     unsigned long original_entrypoint_offset = rom[0];
     original_entrypoint_offset |= rom[1] << 8;
     original_entrypoint_offset |= rom[2] << 16;
@@ -297,6 +317,7 @@ int main(int argc, char **argv)
         if (!mode)
         {
             puts("Could not find a write function to hook. Are you sure the game has save functionality and has been SRAM patched with GBATA?");
+            pause();
             return 1;
         }
         else
@@ -306,7 +327,7 @@ int main(int argc, char **argv)
     }
 
     // Flush all changes to new file
-    char *suffix = mode ? " [NB_keypad].gba" : " [NB_auto].gba";
+    char *suffix = mode ? " [NB_manual].gba" : " [NB_auto].gba";
     size_t suffix_length = strlen(suffix);
     char new_filename[FILENAME_MAX];
     strncpy(new_filename, argv[1], FILENAME_MAX);
@@ -316,6 +337,7 @@ int main(int argc, char **argv)
     {
         puts("Could not open output file");
         puts(strerror(errno));
+        pause();
         return 1;
     }
     
@@ -323,5 +345,6 @@ int main(int argc, char **argv)
     fflush(outfile);
 
     printf("Patched successfully. Changes written to %s\n", new_filename);
+    pause();
     return 0;
 }
