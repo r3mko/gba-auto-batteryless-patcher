@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Clean
-rm -f payload.elf payload.bin payload_bin.c patcher patcher.exe
+rm -f payload.elf payload.bin payload_bin.c patcher patcher.exe patcher_64.exe
 
 # Build
 $DEVKITARM/bin/arm-none-eabi-gcc \
