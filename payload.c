@@ -5,7 +5,9 @@
 #define SRAM_BANK_SEL (*(volatile unsigned short*) 0x09000000)
 #define _FLASH_WRITE(pa, pd) { *(((unsigned short *)AGB_ROM)+((pa)/2)) = pd; __asm("nop"); }
 
-asm(R"(.text
+asm(R"(
+
+.text
 
 original_entrypoint:
     .word 0x080000c0
@@ -46,20 +48,7 @@ flush_sram_manual_entry:
     pop {r0}
     mov lr, r0
     pop {r0, r1, r2, r3, r4}
-
-    # feel free to put any housekeeping before you return to your injected branch here
-
-    nop
-    nop
-    nop
-    nop
-
     bx lr
-
-    nop
-    nop
-    nop
-    nop
 
 .ltorg
 
@@ -171,7 +160,7 @@ write_sram_patched_exit:
     pop {r1}
     bx r1
 
-    .ltorg
+.ltorg
 
 # r0 = eeprom address, r1 = src data (needs byte swapping, 8 bytes)
 
@@ -217,6 +206,7 @@ install_countdown_handler:
     mov r2, # 102
     strh r2, [r1, # 0x0a]
     str r0, [r1, # 0x0c]
+
     # Set green swap as a visual indicator that the countdown has begun
     strh r2, [r1, # 0x12]
     bx lr
@@ -374,35 +364,34 @@ flush_sram_done:
     pop {r2, r3}
     strh r3, [r0, # 0x0084]
     strh r2, [r0, # 0x0080]
-
     bx lr
     
 flash_fn_table:
-.word identify_flash_1
-.word identify_flash_1_end
-.word erase_flash_1
-.word erase_flash_1_end
-.word program_flash_1
-.word program_flash_1_end
-.word identify_flash_4
-.word identify_flash_4_end
-.word erase_flash_4
-.word erase_flash_4_end
-.word program_flash_4 
-.word program_flash_4_end
-.word identify_flash_2
-.word identify_flash_2_end
-.word erase_flash_2
-.word erase_flash_2_end
-.word program_flash_2
-.word program_flash_2_end
-.word identify_flash_3
-.word identify_flash_3_end
-.word erase_flash_3 
-.word erase_flash_3_end
-.word program_flash_3
-.word program_flash_3_end
-.zero 12
+    .word identify_flash_1
+    .word identify_flash_1_end
+    .word erase_flash_1
+    .word erase_flash_1_end
+    .word program_flash_1
+    .word program_flash_1_end
+    .word identify_flash_4
+    .word identify_flash_4_end
+    .word erase_flash_4
+    .word erase_flash_4_end
+    .word program_flash_4 
+    .word program_flash_4_end
+    .word identify_flash_2
+    .word identify_flash_2_end
+    .word erase_flash_2
+    .word erase_flash_2_end
+    .word program_flash_2
+    .word program_flash_2_end
+    .word identify_flash_3
+    .word identify_flash_3_end
+    .word erase_flash_3 
+    .word erase_flash_3_end
+    .word program_flash_3
+    .word program_flash_3_end
+    .zero 12
 
 run_from_ram:
     push {r4, r5, lr}
@@ -422,6 +411,7 @@ run_from_ram_loop:
     mov sp, r4
     pop {r4, r5, lr}
     bx lr
+
 )");
 
 int identify_flash_1()
@@ -705,13 +695,16 @@ void program_flash_4(unsigned sa, unsigned save_size)
 asm("program_flash_4_end:");
 
 asm(R"(
+
 # The following footer must come last.
 .balign 4
 .ascii "2c7deef4686285fe"
+
 # Size of payload
 .hword (.+2)
 .balign 4
+
 flash_save_sector:
-.end
+    .end
 
 )");
