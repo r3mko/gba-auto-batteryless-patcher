@@ -224,7 +224,7 @@ int main(int argc, char **argv)
             found_write_location = 1;
             if (!mode)
             {                
-                printf("WriteSram identified at offset %lx, patching\n", write_location - rom);
+                printf("WriteSram 1 identified at offset %lx, patching\n", write_location - rom);
                 memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
                 1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_SRAM_PATCHED[(uint32_t*) payload_bin];
             }
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
             found_write_location = 1;
             if (!mode)
             {
-                printf("SRAM-patched flash write function2  identified at offset %lx\n", write_location - rom);
+                printf("SRAM-patched flash write function 2 identified at offset %lx\n", write_location - rom);
                 memcpy(write_location, thumb_branch_thunk, sizeof thumb_branch_thunk);
                 1[(uint32_t*) write_location] = 0x08000000 + payload_base + WRITE_FLASH_PATCHED[(uint32_t*) payload_bin];
             }
