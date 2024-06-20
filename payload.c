@@ -59,6 +59,7 @@ sram_init_loop:
     mov r4, #0
     strh r4, [r3]
 
+    # Jump to original entrypoint
     ldr pc, original_entrypoint
 
 .thumb
@@ -66,6 +67,7 @@ sram_init_loop:
 
 .type write_sram_patched, %function
 write_sram_patched:
+    # Save return address and register states
     push {lr}
     push {r4, r5, r6, r7}
 
@@ -75,18 +77,19 @@ write_sram_patched:
     mov r3, #0
     strh r3, [r6]
     
-    # Writes will never span both SRAM banks, so only needed to write once.
+    # Writes will never span both SRAM banks - so only needed to write once.
     mov r4, #0x09
     lsl r4, #24
     lsr r5, r1, #16
     mov r3, #1
     and r5, r3
     strh r5, [r4]
-    
+
+    # Set size
     add r2, r0
 
 write_sram_patched_loop:
-    # Check if the each byte to write to sram is different - if it is, write it then set a flag
+    # Check if the each byte to write to sram is different - if it is, write it, then set a flag
     ldrb r4, [r0]
     ldrb r5, [r1]
     cmp r4, r5
@@ -112,13 +115,14 @@ write_sram_patched_loop:
     bl install_countdown_handler
 
 write_sram_patched_exit:
+    # Restore interrupts and registers
     strh r7, [r6]
     mov r0, #0
     pop {r4, r5, r6, r7}
     pop {r1}
     bx r1
 
-# r0 = sector number, # r1 = source data 0x1000 bytes
+# r0 = sector number, r1 = source data 0x1000 bytes
 
 .type write_flash_patched, %function
 write_flash_patched:
@@ -203,7 +207,8 @@ keypad_irq_handler:
     # Switch to system mode to get lots of stack
     mov r3, #0x9f
     msr cpsr, r3
-    
+
+    # Save link register, flush sram, restore link register
     push {lr}
     bl flush_sram
     pop {lr}
@@ -233,15 +238,16 @@ keypad_irq_handler:
     strh r2, [r0, #0x0080]
     strh r3, [r0, #0x0084]
 
+    # Idle irq handler
     ldr pc, [r0, #-12]
 
 countdown_irq_handler:
-    # If not vblank IF then user handler
+    # If not vblank IF then continue
     ldr r1, [r0, #0x200]
     tst r1, #0x00010000
     ldreq pc, [r0, #-12]
 
-    # If (--counter) then user handler
+    # If countdown hits 0 then contiue
     ldrh r1, [r0, #-6]
     subs r1, #1
     strh r1, [r0, #-6]
@@ -250,7 +256,8 @@ countdown_irq_handler:
     # Switch to system mode to get lots of stack
     mov r3, #0x9f
     msr cpsr, r3
-    
+
+    # Save link register, flush sram, restore link register
     push {lr}
     bl flush_sram
     pop {lr}
@@ -298,10 +305,11 @@ flush_sram:
     push {r3}
     strh r0, [r0, #0x00de]
 
+    # Save link register
     push {lr}
+    push {r4, r5, r6, r7}
     
     # Try flushing for various flash chips
-    push {r4, r5, r6, r7}
     adrl r4, flash_save_sector
     sub r4, #0x08000000
     ldr r5, save_size
@@ -309,6 +317,7 @@ flush_sram:
     adr r7, original_entrypoint 
     
 try_flash:
+    # Loop through fn table
     ldm r6!, {r2, r3}
     cmp r2, #0
     beq flush_sram_done
@@ -321,6 +330,7 @@ try_flash:
     b try_flash
     
 found_flash:
+    # Write twice
     ldm r6!, {r2, r3}
     mov r0, r4
     mov r1, r5
@@ -335,12 +345,12 @@ found_flash:
     bl run_from_ram
 
 flush_sram_done:
+    # Restore return address and register states
     pop {r4, r5, r6, r7}
     pop {lr}
 
-    mov r0, #0x04000000
-
     # Restore DMAs state
+    mov r0, #0x04000000
     pop {r3}
     strh r3, [r0, #0x00de]
     pop {r3}
@@ -457,7 +467,7 @@ asm("erase_flash_1_end:");
 void program_flash_1(unsigned sa, unsigned save_size) {    
     // Write data
     SRAM_BANK_SEL = 0;
-    for (int i=0; i<save_size; i+=2) {
+    for (int i = 0; i < save_size; i += 2) {
         if (i == AGB_SRAM_SIZE) {
             SRAM_BANK_SEL = 1;
         }
@@ -515,7 +525,7 @@ asm("erase_flash_2_end:");
 void program_flash_2(unsigned sa, unsigned save_size) {
     // Write data
     SRAM_BANK_SEL = 0;
-    for (int i=0; i<save_size; i+=2) {
+    for (int i = 0; i < save_size; i += 2) {
         if (i == AGB_SRAM_SIZE) {
             SRAM_BANK_SEL = 1;
         }
@@ -575,7 +585,7 @@ asm("erase_flash_3_end:");
 void program_flash_3(unsigned sa, unsigned save_size) {
     // Write data
     SRAM_BANK_SEL = 0;
-    for (int i=0; i<save_size; i+=2) {
+    for (int i = 0; i < save_size; i += 2) {
         if (i == AGB_SRAM_SIZE) {
             SRAM_BANK_SEL = 1;
         }
@@ -660,7 +670,7 @@ void program_flash_4(unsigned sa, unsigned save_size) {
             }
         }
         _FLASH_WRITE(sa+c, 0x1FF);
-        for (int i=0; i<1024; i+=2) {
+        for (int i = 0; i < 1024; i += 2) {
             _FLASH_WRITE(sa+c+i, (*(unsigned char *)(AGB_SRAM+c+i+1)) << 8 | (*(unsigned char *)(AGB_SRAM+c+i)));
         }
         _FLASH_WRITE(sa+c, 0xD0);
