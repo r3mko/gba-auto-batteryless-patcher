@@ -25,22 +25,27 @@ save_size:
 .arm
 patched_entrypoint:
     mov r0, #0x04000000
+
+    # Install irq handler based on mode
     ldr r1, flush_mode
     cmp r1, #0
     adr r1, idle_irq_handler
     adrne r1, keypad_irq_handler
     str r1, [r0, #-4]
 
+    # Set save sector and size
     adrl r0, flash_save_sector
     mov r1, #0x0e000000
     ldr r2, save_size
     add r2, r1
     mov r3, #0x09000000
+
     # Lock 369in1 mapper
     mov r4, #0x80
     strb r4, [r1, #3]
 
 sram_init_loop:
+    # Write byte to sram
     lsr r4, r1, #16
     and r4, #1
     strh r4, [r3]
@@ -49,7 +54,7 @@ sram_init_loop:
     strb r4, [r1], #1
     cmp r1, r2
     blo sram_init_loop
-    
+
     # Set bank to 0 for banking-unaware software
     mov r4, #0
     strh r4, [r3]
@@ -58,7 +63,6 @@ sram_init_loop:
 
 .thumb
 # r0 = src, r1 = dst, r2 = size. Check if change before writing, only install irq if change
-# Unoptimised as hell, but I don't care for now.
 
 .type write_sram_patched, %function
 write_sram_patched:
