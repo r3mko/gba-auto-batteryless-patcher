@@ -126,6 +126,7 @@ write_sram_patched_exit:
 
 .type write_flash_patched, %function
 write_flash_patched:
+    # Get data (4096 byte sectors) from flash
     lsl r0, #12
     mov r2, #0x0e
     lsl r2, #24
@@ -144,19 +145,22 @@ write_flash_patched:
 
 .type write_eeprom_patched, %function
 write_eeprom_patched:
+    # Save states and init
     push {r4, lr}
     mov r2, r1
     add r2, #8
     mov r3, sp
 
 write_eeprom_patched_byte_swap_loop:
+    # Byte-swap 8 bytes
     ldrb r4, [r1]
     add r1, #1
     sub r3, #1
     strb r4, [r3]
     cmp r1, r2
     bne write_eeprom_patched_byte_swap_loop
-    
+
+    # Address translation
     mov r1, #0x0e
     lsl r1, #24
     lsl r0, #3
@@ -165,7 +169,8 @@ write_eeprom_patched_byte_swap_loop:
     mov r0, r3
     mov sp, r3
     bl write_sram_patched
-    
+
+    # Cleanup and restore
     add sp, #8
     pop {r4, pc}
 
@@ -177,6 +182,7 @@ write_eeprom_v111_posthook:
     bx r0
     
 install_countdown_handler:
+    # Load and set the address and timer value into memory 
     adr r0, countdown_irq_handler
     mov r1, #0x04
     lsl r1, #24
@@ -395,20 +401,23 @@ flash_fn_table:
     .zero 12
 
 run_from_ram:
+    # Load code from memory
     push {r4, r5, lr}
     mov r4, sp
     bic r2, #1
     
-run_from_ram_loop:    
+run_from_ram_loop:
+    # And run it    
     ldr r5, [r3, #-4]!
     push {r5}
     cmp r2, r3
     bne run_from_ram_loop
-    
+
     add r2, sp, #1
     mov lr, pc
     bx r2
     
+    # Restore stack pointer and register states    
     mov sp, r4
     pop {r4, r5, lr}
 
